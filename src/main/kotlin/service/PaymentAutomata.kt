@@ -22,8 +22,7 @@ class PaymentAutomata {
     fun selectMethod(method: Method) =
         when (payment.status) {
             is Paid -> payment.status
-            is Initial -> startProcessing(method)
-            is Processing -> startProcessing(method)
+            is Initial, is Processing -> startProcessing(method)
         }
 
     fun pay(method: Method) =
@@ -43,20 +42,22 @@ class PaymentAutomata {
     }
 
     private fun executePayment(method: Method): Status {
-        val processing = findProcessing(method)?.let {
-            val status = when (method) {
-                BANK_TRANSFER -> ProcessingBankTransfer(bankTransferExample)
-                SMS -> ProcessingSms(smsExample)
-                CARD -> ProcessingCard(cardExample)
+        val result = findProcessing(method)?.let {
+            when (method) {
+                BANK_TRANSFER -> Paid()
+                SMS -> Initial()
+                CARD -> Paid()
             }
         }
-        return payment.status
+        return result ?: payment.status
     }
 
     private fun findProcessing(method: Method): Processing? {
         for (processing in payment.processing) {
-            if (processing.method == method)
+            if (processing.method == method) {
+                payment.processing.remove(processing)
                 return processing
+            }
         }
         return null
     }
